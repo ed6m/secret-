@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+  <title>حاسبة مستويات السعر</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Cairo&display=swap');
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      font-family: 'Cairo', sans-serif, Arial, sans-serif;
+      color: #fff;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      min-height: 600px;
+      padding: 10px;
+    }
+    .container {
+      background-color: rgba(0, 0, 0, 0.55);
+      border-radius: 15px;
+      width: 100%;
+      max-width: 350px;
+      padding: 25px 20px 30px;
+      box-shadow: 0 8px 25px rgb(0 0 0 / 0.6);
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      max-height: 600px;
+    }
+    h1 {
+      font-size: 1.9rem;
+      text-align: center;
+      font-weight: 700;
+      margin-bottom: 28px;
+      user-select: none;
+    }
+    label {
+      font-size: 1.1rem;
+      margin-bottom: 6px;
+      font-weight: 600;
+      user-select: none;
+      display: block;
+    }
+    input[type="number"] {
+      width: 100%;
+      padding: 12px 14px;
+      font-size: 1rem;
+      border-radius: 10px;
+      border: none;
+      outline: none;
+      margin-bottom: 20px;
+      font-weight: 700;
+      color: #333;
+      transition: box-shadow 0.3s ease;
+    }
+    input[type="number"]:focus {
+      box-shadow: 0 0 8px 3px #ff6b6b;
+    }
+    button {
+      width: 100%;
+      background-color: #ff6b6b;
+      border: none;
+      border-radius: 12px;
+      color: white;
+      font-size: 1.25rem;
+      font-weight: 700;
+      padding: 14px 0;
+      cursor: pointer;
+      transition: background-color 0.3s ease;
+      user-select: none;
+      margin-top: 10px;
+    }
+    button:hover {
+      background-color: #e03e3e;
+    }
+    .error {
+      margin-top: 12px;
+      text-align: center;
+      color: #ff5252;
+      font-weight: 700;
+      min-height: 18px;
+      user-select: none;
+    }
+    .result {
+      margin-top: 30px;
+      background: rgba(255 255 255 / 0.15);
+      border-radius: 15px;
+      padding: 18px 15px;
+      flex-grow: 1;
+      overflow-y: auto;
+    }
+    .result h2 {
+      font-weight: 700;
+      font-size: 1.4rem;
+      text-align: center;
+      margin: 0 0 18px 0;
+      user-select: none;
+    }
+    ul.levels-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+      font-size: 1.15rem;
+      user-select: none;
+    }
+    ul.levels-list li {
+      padding: 10px 16px;
+      margin-bottom: 10px;
+      border-radius: 12px;
+      background: rgba(255 255 255 / 0.1);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-weight: 600;
+      transition: background-color 0.3s ease;
+    }
+    ul.levels-list li:first-child {
+      background: #4caf50cc;
+      color: #e9f7ef;
+      font-weight: 800;
+    }
+    ul.levels-list li:last-child {
+      background: #e91e63cc;
+      color: #fce4ec;
+      font-weight: 800;
+    }
+    ul.levels-list li:not(:first-child):not(:last-child) {
+      background: #ffc107cc;
+      color: #4a4a00;
+    }
+    @media screen and (max-width: 400px) {
+      .container {
+        max-width: 100%;
+        height: auto;
+        max-height: none;
+      }
+      body {
+        align-items: flex-start;
+        padding-top: 20px;
+        min-height: auto;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="container" role="main" aria-label="حاسبة مستويات السعر">
+    <h1>حاسبة مستويات السعر</h1>
+    <form id="priceForm" novalidate>
+      <label for="lowerPrice">السعر الأقل</label>
+      <input id="lowerPrice" name="lowerPrice" type="number" min="0" step="0.01" placeholder="أدخل السعر الأقل" required aria-required="true" aria-describedby="errorMsg"/>
+      
+      <label for="higherPrice">السعر الأعلى</label>
+      <input id="higherPrice" name="higherPrice" type="number" min="0" step="0.01" placeholder="أدخل السعر الأعلى" required aria-required="true" aria-describedby="errorMsg"/>
+      
+      <button type="submit" aria-label="إحسب المستويات">إحسب المستويات</button>
+      <p class="error" id="errorMsg" role="alert" aria-live="assertive" aria-atomic="true"></p>
+    </form>
+    
+    <section class="result" id="result" aria-live="polite" aria-atomic="true" hidden>
+      <h2>مستويات السعر</h2>
+      <ul class="levels-list" id="levelsList" role="list"></ul>
+    </section>
+  </main>
+
+  <script>
+    (() => {
+      const form = document.getElementById('priceForm');
+      const errorMsg = document.getElementById('errorMsg');
+      const resultSection = document.getElementById('result');
+      const levelsList = document.getElementById('levelsList');
+      const lowerInput = document.getElementById('lowerPrice');
+      const higherInput = document.getElementById('higherPrice');
+
+      function clearResults() {
+        levelsList.innerHTML = '';
+        resultSection.hidden = true;
+        errorMsg.textContent = '';
+      }
+
+      form.addEventListener('submit', (e) => {
+        e.preventDefault();
+        clearResults();
+
+        const lower = parseFloat(lowerInput.value);
+        const higher = parseFloat(higherInput.value);
+
+        if (isNaN(lower) || isNaN(higher)) {
+          errorMsg.textContent = 'يرجى إدخال أرقام صحيحة لكل من السعرين.';
+          return;
+        }
+        if (lower >= higher) {
+          errorMsg.textContent = 'يجب أن يكون السعر الأقل أقل من السعر الأعلى.';
+          return;
+        }
+        if (lower < 0 || higher < 0) {
+          errorMsg.textContent = 'يرجى إدخال أرقام موجبة فقط.';
+          return;
+        }
+
+        // Calculate step size
+        const step = (higher - lower) / 8;
+
+        const levels = [];
+        for(let i = 0; i <= 8; i++) {
+          // Fix floating precision to 2 decimals
+          const price = (lower + step * i).toFixed(2);
+          levels.push(price);
+        }
+
+        // Build list
+        levels.forEach((price, idx) => {
+          const li = document.createElement('li');
+          if (idx === 0) {
+            li.textContent = `السعر الأقل: ${price}`;
+          } else if (idx === levels.length -1) {
+            li.textContent = `السعر الأعلى: ${price}`;
+          } else {
+            li.textContent = `المستوى ${idx}: ${price}`;
+          }
+          levelsList.appendChild(li);
+        });
+
+        resultSection.hidden = false;
+        errorMsg.textContent = '';
+      });
+    })();
+  </script>
+</body>
+</html>
